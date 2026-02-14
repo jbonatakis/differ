@@ -46,12 +46,12 @@ func TestRenderTextSummaryOnly(t *testing.T) {
 	lines := strings.Split(strings.TrimRight(got, "\n"), "\n")
 
 	expected := []string{
-		"Documentation: +12 -3 (15) [4 files]",
-		"Tests: +45 -8 (53) [6 files]",
-		"Source: +120 -90 (210) [14 files]",
-		"Generated: +2 -2 (4) [1 files]",
-		"Uncategorized: +7 -1 (8) [3 files]",
-		"Total: +186 -104 (290) [28 files]",
+		"Documentation: + 12 -  3 ( 15) [4 files]",
+		"Tests:         + 45 -  8 ( 53) [6 files]",
+		"Source:        +120 - 90 (210) [14 files]",
+		"Generated:     +  2 -  2 (  4) [1 file]",
+		"Uncategorized: +  7 -  1 (  8) [3 files]",
+		"Total:         +186 -104 (290) [28 files]",
 	}
 
 	if len(lines) != len(expected) {
@@ -61,6 +61,28 @@ func TestRenderTextSummaryOnly(t *testing.T) {
 	for i, exp := range expected {
 		if lines[i] != exp {
 			t.Errorf("line %d: expected %q, got %q", i, exp, lines[i])
+		}
+	}
+}
+
+func TestRenderTextSummaryAlignsDiffColumns(t *testing.T) {
+	var buf bytes.Buffer
+	s := testSummary()
+	RenderText(&buf, s, OutputOpts{NoColor: true})
+
+	lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected multiple lines, got %d", len(lines))
+	}
+
+	plusIdx := strings.Index(lines[0], "+")
+	bracketIdx := strings.Index(lines[0], "[")
+	for i, line := range lines[1:] {
+		if idx := strings.Index(line, "+"); idx != plusIdx {
+			t.Fatalf("line %d '+' column = %d, want %d: %q", i+2, idx, plusIdx, line)
+		}
+		if idx := strings.Index(line, "["); idx != bracketIdx {
+			t.Fatalf("line %d '[' column = %d, want %d: %q", i+2, idx, bracketIdx, line)
 		}
 	}
 }
@@ -119,8 +141,11 @@ func TestRenderTextWithColor(t *testing.T) {
 	RenderText(&buf, s, OutputOpts{NoColor: false})
 	got := buf.String()
 
-	if !strings.Contains(got, "\033[32m") {
-		t.Error("expected ANSI color code for source category")
+	if !strings.Contains(got, "\033[32m+10\033[0m") {
+		t.Error("expected green ANSI color code for added count")
+	}
+	if !strings.Contains(got, "\033[31m-5\033[0m") {
+		t.Error("expected red ANSI color code for deleted count")
 	}
 	if !strings.Contains(got, resetColor) {
 		t.Error("expected ANSI reset code")
@@ -246,12 +271,33 @@ func TestRenderTextEmptySummary(t *testing.T) {
 	got := buf.String()
 
 	// Should only have the Total line.
-	if !strings.Contains(got, "Total: +0 -0 (0) [0 files]") {
+	if !strings.Contains(got, "Total:         +0 -0 (0) [0 files]") {
 		t.Errorf("empty summary should show zero total, got: %s", got)
 	}
 	lines := strings.Split(strings.TrimRight(got, "\n"), "\n")
 	if len(lines) != 1 {
 		t.Errorf("empty summary should have 1 line, got %d", len(lines))
+	}
+}
+
+func TestRenderTextSingularFileWord(t *testing.T) {
+	var buf bytes.Buffer
+	s := Summary{
+		Totals: CategoryTotal{Added: 2, Deleted: 1, Churn: 3, FileCount: 1},
+		CategoryTotals: map[string]CategoryTotal{
+			"source": {Added: 2, Deleted: 1, Churn: 3, FileCount: 1},
+		},
+		FileStats: []FileStat{
+			{Path: "main.go", Added: 2, Deleted: 1, Churn: 3, Category: "source"},
+		},
+	}
+	RenderText(&buf, s, OutputOpts{NoColor: true})
+	got := buf.String()
+	if !strings.Contains(got, "[1 file]") {
+		t.Fatalf("expected singular file word, got:\n%s", got)
+	}
+	if strings.Contains(got, "[1 files]") {
+		t.Fatalf("unexpected plural for singular count:\n%s", got)
 	}
 }
 
