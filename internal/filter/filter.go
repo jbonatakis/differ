@@ -2,7 +2,7 @@ package filter
 
 import (
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/jackbonatakis/differ/internal/parser"
+	"github.com/jbonatakis/differ/internal/parser"
 )
 
 // FilterConfig controls which files to keep or discard.

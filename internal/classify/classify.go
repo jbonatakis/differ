@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jackbonatakis/differ/internal/config"
+	"github.com/jbonatakis/differ/internal/config"
 )
 
 // Category constants.

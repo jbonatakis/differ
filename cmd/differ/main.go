@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackbonatakis/differ/internal/classify"
-	"github.com/jackbonatakis/differ/internal/config"
-	"github.com/jackbonatakis/differ/internal/filter"
-	"github.com/jackbonatakis/differ/internal/gitdiff"
-	"github.com/jackbonatakis/differ/internal/output"
-	"github.com/jackbonatakis/differ/internal/parser"
+	"github.com/jbonatakis/differ/internal/classify"
+	"github.com/jbonatakis/differ/internal/config"
+	"github.com/jbonatakis/differ/internal/filter"
+	"github.com/jbonatakis/differ/internal/gitdiff"
+	"github.com/jbonatakis/differ/internal/output"
+	"github.com/jbonatakis/differ/internal/parser"
 	"github.com/spf13/cobra"
 )
 

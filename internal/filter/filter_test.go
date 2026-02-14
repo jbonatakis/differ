@@ -3,7 +3,7 @@ package filter
 import (
 	"testing"
 
-	"github.com/jackbonatakis/differ/internal/parser"
+	"github.com/jbonatakis/differ/internal/parser"
 )
 
 func fs(path string) parser.FileStat {

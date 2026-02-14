@@ -3,7 +3,7 @@ package classify
 import (
 	"testing"
 
-	"github.com/jackbonatakis/differ/internal/config"
+	"github.com/jbonatakis/differ/internal/config"
 )
 
 func newClassifier(categories map[string]config.CategoryConfig) *Classifier {

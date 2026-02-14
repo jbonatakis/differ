@@ -1,4 +1,4 @@
-module github.com/jackbonatakis/differ
+module github.com/jbonatakis/differ
 
 go 1.25.7
 

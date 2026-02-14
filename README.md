@@ -13,12 +13,12 @@ brew tap jbonatakis/tap && brew install differ
 ### From source
 
 ```bash
-go install github.com/jackbonatakis/differ/cmd/differ@latest
+go install github.com/jbonatakis/differ/cmd/differ@latest
 ```
 
 ### Binary releases
 
-Download pre-built binaries from the [Releases](https://github.com/jackbonatakis/differ/releases) page. Binaries are available for:
+Download pre-built binaries from the [Releases](https://github.com/jbonatakis/differ/releases) page. Binaries are available for:
 
 - macOS (arm64, x86_64)
 - Linux (arm64, x86_64)
