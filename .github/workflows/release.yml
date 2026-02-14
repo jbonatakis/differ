@@ -89,19 +89,66 @@ jobs:
 
       - name: Locate formula file
         run: |
+          formula_rel=""
           if [[ -f tap/Formula/differ.rb ]]; then
-            echo "FORMULA_REL=Formula/differ.rb" >> "$GITHUB_ENV"
+            formula_rel="Formula/differ.rb"
           elif [[ -f tap/differ.rb ]]; then
-            echo "FORMULA_REL=differ.rb" >> "$GITHUB_ENV"
+            formula_rel="differ.rb"
           else
-            echo "Could not find differ formula file in tap repo" >&2
-            find tap -maxdepth 3 -name 'differ.rb' -print
-            exit 1
+            formula_rel="Formula/differ.rb"
+            mkdir -p tap/Formula
+            echo "Formula file not found, bootstrapping ${formula_rel}"
           fi
+          echo "FORMULA_REL=${formula_rel}" >> "$GITHUB_ENV"
+          echo "FORMULA_PATH=tap/${formula_rel}" >> "$GITHUB_ENV"
+
+      - name: Bootstrap formula if missing
+        run: |
+          if [[ -f "${FORMULA_PATH}" ]]; then
+            exit 0
+          fi
+
+          repo="${{ github.repository }}"
+          cat > "${FORMULA_PATH}" <<EOF
+          class Differ < Formula
+            desc "A CLI tool for diffing directories and files with support for specs"
+            homepage "https://github.com/${repo}"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/${repo}/releases/download/v#{version}/differ-v#{version}-darwin-arm64.tar.gz"
+                sha256 "$(cat darwin_arm64)"
+              else
+                url "https://github.com/${repo}/releases/download/v#{version}/differ-v#{version}-darwin-amd64.tar.gz"
+                sha256 "$(cat darwin_amd64)"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/${repo}/releases/download/v#{version}/differ-v#{version}-linux-arm64.tar.gz"
+                sha256 "$(cat linux_arm64)"
+              else
+                url "https://github.com/${repo}/releases/download/v#{version}/differ-v#{version}-linux-amd64.tar.gz"
+                sha256 "$(cat linux_amd64)"
+              end
+            end
+
+            def install
+              bin.install "differ"
+            end
+
+            test do
+              assert_match "differ", shell_output("#{bin}/differ --help")
+            end
+          end
+          EOF
 
       - name: Update formula
         run: |
-          formula="tap/${FORMULA_REL}"
+          formula="${FORMULA_PATH}"
 
           sed -i "s/version \".*\"/version \"${VERSION}\"/" "$formula"
 
