@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   release:
-    name: Release Go Binary
+    name: Build And Upload Assets
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -19,16 +19,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build and publish
-        uses: wangyoucao577/go-release-action@v1
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          goos: ${{ matrix.goos }}
-          goarch: ${{ matrix.goarch }}
-          project_path: ./cmd/differ
-          binary_name: differ
-          goversion: "1.25"
-          sha256sum: true
+          go-version-file: go.mod
+
+      - name: Build release artifact
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          if [[ "$tag" != v* ]]; then
+            echo "Release tag must start with 'v' (for example v1.2.3). Got: $tag" >&2
+            exit 1
+          fi
+
+          artifact="differ-${tag}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          out_dir="dist/${artifact}"
+          mkdir -p "$out_dir"
+
+          GOOS="${{ matrix.goos }}" \
+          GOARCH="${{ matrix.goarch }}" \
+          CGO_ENABLED=0 \
+          go build -trimpath -ldflags "-s -w" -o "${out_dir}/differ" ./cmd/differ
+
+          tar -C "$out_dir" -czf "dist/${artifact}.tar.gz" differ
+          sha256sum "dist/${artifact}.tar.gz" > "dist/${artifact}.tar.gz.sha256"
+
+      - name: Upload release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          artifact="differ-${tag}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          gh release upload "$tag" \
+            "dist/${artifact}.tar.gz" \
+            "dist/${artifact}.tar.gz.sha256" \
+            --clobber
 
   update-homebrew:
     name: Update Homebrew Tap
