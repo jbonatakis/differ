@@ -63,16 +63,16 @@ var generatedDirs = []string{
 // Lockfiles considered generated.
 var lockfiles = map[string]bool{
 	"package-lock.json": true,
-	"pnpm-lock.yaml":   true,
-	"yarn.lock":        true,
-	"go.sum":           true,
-	"cargo.lock":       true,
-	"gemfile.lock":     true,
-	"composer.lock":    true,
-	"poetry.lock":      true,
-	"pipfile.lock":     true,
-	"bun.lockb":        true,
-	"flake.lock":       true,
+	"pnpm-lock.yaml":    true,
+	"yarn.lock":         true,
+	"go.sum":            true,
+	"cargo.lock":        true,
+	"gemfile.lock":      true,
+	"composer.lock":     true,
+	"poetry.lock":       true,
+	"pipfile.lock":      true,
+	"bun.lockb":         true,
+	"flake.lock":        true,
 }
 
 func (c *Classifier) isGenerated(normalized, base string) bool {
