@@ -1,17 +1,16 @@
 # differ
 
-```bash
-> differ
-
-Documentation: +772 -3 (775) [9 files]
-Tests: +1991 -0 (1991) [21 files]
-Source: +6512 -351 (6863) [50 files]
-Generated: +38 -0 (38) [1 files]
-Uncategorized: +12 -0 (12) [1 files]
-Total: +9325 -354 (9679) [82 files]
-```
-
 A CLI tool for breaking down diff summaries.
+
+<pre><code>&gt; differ
+
+Documentation: <span style="color:#26a269">+772</span> <span style="color:#c01c28">-3</span> (775) [9 files]
+Tests: <span style="color:#26a269">+1991</span> <span style="color:#c01c28">-0</span> (1991) [21 files]
+Source: <span style="color:#26a269">+6512</span> <span style="color:#c01c28">-351</span> (6863) [50 files]
+Generated: <span style="color:#26a269">+38</span> <span style="color:#c01c28">-0</span> (38) [1 files]
+Uncategorized: <span style="color:#26a269">+12</span> <span style="color:#c01c28">-0</span> (12) [1 files]
+Total: <span style="color:#26a269">+9325</span> <span style="color:#c01c28">-354</span> (9679) [82 files]
+</code></pre>
 
 ## Installation
 
@@ -34,7 +33,11 @@ Download pre-built binaries from the [Releases](https://github.com/jbonatakis/di
 - macOS (arm64, x86_64)
 - Linux (arm64, x86_64)
 
-## Usage
+## Documentation
+
+### Usage
+
+- See the [Usage Guide](docs/usage.md) for detailed usage instructions
 
 Basic examples:
 
@@ -81,4 +84,3 @@ Releases are automated by `.github/workflows/release.yml`:
 
 - On a GitHub Release creation, binaries are built and uploaded as release assets.
 - After assets upload, the workflow updates `jbonatakis/homebrew-tap` with the new `differ` formula version and SHA256 values.
-
