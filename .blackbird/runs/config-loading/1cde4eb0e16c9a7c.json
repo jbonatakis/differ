@@ -1,0 +1,51 @@
+{
+  "id": "1cde4eb0e16c9a7c",
+  "taskId": "config-loading",
+  "run_type": "execute",
+  "provider": "claude",
+  "provider_session_ref": "e760c252-d5d9-4a01-8a27-bd49fee60b3f",
+  "startedAt": "2026-02-14T16:33:25.903323Z",
+  "completedAt": "2026-02-14T16:35:13.226841Z",
+  "status": "success",
+  "exitCode": 0,
+  "stdout": "All done. Here's a summary of what was implemented:\n\n**`internal/config/config.go`** — the full config package:\n\n- **`Config` struct** with fields: `Include`, `Exclude`, `Categories` (map of `CategoryConfig` with `Patterns`/`Extensions`), `Empty` (`\"include\"|\"exclude\"`), `Sort` (`\"churn\"|\"path\"`)\n- **`Load(repoRoot, cliOverrides)`** — public API that:\n  - Reads `~/.config/differ/config.yml` (global, silently skipped if missing)\n  - Reads `.differ.yml` from `repoRoot` (silently skipped if missing)\n  - Merges with precedence: CLI \u003e repo \u003e global \u003e built-in defaults (`Empty:\"exclude\"`, `Sort:\"churn\"`)\n  - Returns descriptive errors for malformed YAML\n- **`merge(base, override)`** — field-level merge where non-zero override fields win; categories are merged at the key level (override replaces individual category entries while preserving others from base)\n\n**`internal/config/config_test.go`** — 10 tests covering:\n- No config files → defaults\n- Repo config only\n- Global config only\n- Both configs with merge precedence\n- CLI overrides trump everything\n- Malformed repo YAML → error\n- Malformed global YAML → error\n- Missing files silently skipped\n- Category merge preserves base keys\n- Empty repo root skips repo loading\n",
+  "context": {
+    "schemaVersion": 1,
+    "task": {
+      "id": "config-loading",
+      "title": "Configuration loading and merge precedence",
+      "description": "Implement the internal/config package to load .differ.yml (repo root) and ~/.config/differ/config.yml (global), merge them with CLI flags using the defined precedence: CLI \u003e repo \u003e global \u003e defaults.",
+      "acceptanceCriteria": [
+        "Config struct defined with fields: Include, Exclude, Categories (map with patterns/extensions), Empty (include|exclude), Sort (churn|path)",
+        "Loads .differ.yml from the Git repo root directory",
+        "Loads ~/.config/differ/config.yml as global config",
+        "Merge precedence: CLI flags \u003e repo config \u003e global config \u003e built-in defaults",
+        "Missing config files are silently skipped (not errors)",
+        "Malformed YAML returns exit code 2 with descriptive error message",
+        "Unit tests cover: no config files, repo only, global only, both with merge, malformed YAML error"
+      ],
+      "prompt": "Implement the `internal/config` package.\n\n1. Define a `Config` struct:\n   - Include []string, Exclude []string\n   - Categories map[string]CategoryConfig (where CategoryConfig has Patterns []string and Extensions []string)\n   - Empty string (\"include\" or \"exclude\"), Sort string (\"churn\" or \"path\")\n2. Write a `Load(repoRoot string, cliOverrides Config)` function that:\n   - Reads `.differ.yml` from repoRoot (if exists)\n   - Reads `~/.config/differ/config.yml` (if exists)\n   - Merges with precedence: cliOverrides \u003e repo \u003e global \u003e defaults\n   - Returns error for malformed YAML\n3. Use `gopkg.in/yaml.v3` for parsing.\n4. Write thorough unit tests covering all merge scenarios and error cases."
+    },
+    "dependencies": [
+      {
+        "id": "project-scaffold",
+        "title": "Project scaffolding and Go module setup",
+        "status": "done"
+      }
+    ],
+    "systemPrompt": "You are authorized to run non-destructive commands and edit files needed to complete the task. Do not ask for confirmation. Avoid destructive operations (e.g., deleting unrelated files, wiping directories, resetting git history, or modifying system files)."
+  },
+  "review_summary": {
+    "files": [
+      ".blackbird/",
+      "Makefile",
+      "blackbird.plan.json",
+      "cmd/",
+      "differ",
+      "go.mod",
+      "go.sum",
+      "internal/",
+      "specs/"
+    ]
+  }
+}

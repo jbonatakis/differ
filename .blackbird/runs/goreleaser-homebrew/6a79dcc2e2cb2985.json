@@ -1,0 +1,53 @@
+{
+  "id": "6a79dcc2e2cb2985",
+  "taskId": "goreleaser-homebrew",
+  "run_type": "execute",
+  "provider": "claude",
+  "provider_session_ref": "21340feb-b82a-4244-ac97-5ea23d837e51",
+  "startedAt": "2026-02-14T16:50:38.436193Z",
+  "completedAt": "2026-02-14T16:52:57.024962Z",
+  "status": "success",
+  "exitCode": 0,
+  "stdout": "All done. Here's a summary of what was set up:\n\n**`.goreleaser.yml`** — GoReleaser v2 config with:\n- Single build targeting `cmd/differ` for darwin/linux × amd64/arm64\n- Binary name: `differ`\n- `tar.gz` archives with clean naming\n- `homebrew_casks` section configured to push a formula to `jackbonatakis/homebrew-tap`\n- Changelog generation with conventional commit filtering\n\n**Verification results:**\n- `goreleaser check` — passes cleanly\n- `goreleaser build --snapshot --clean` — successfully produced all 4 binaries:\n  - `differ_darwin_amd64`\n  - `differ_darwin_arm64`\n  - `differ_linux_amd64`\n  - `differ_linux_arm64`\n\n**`README.md`** — Created with install instructions including `brew tap jackbonatakis/tap \u0026\u0026 brew install differ`.\n\nTo release, you'll need to:\n1. Create the `jackbonatakis/homebrew-tap` repo on GitHub (if it doesn't exist)\n2. Tag a version: `git tag v0.1.0`\n3. Run: `goreleaser release --clean` (or set up a GitHub Actions workflow to do this on tag push)\n",
+  "context": {
+    "schemaVersion": 1,
+    "task": {
+      "id": "goreleaser-homebrew",
+      "title": "GoReleaser config and Homebrew distribution",
+      "description": "Set up GoReleaser configuration for cross-platform binary builds (macOS arm64/x86_64, Linux arm64/x86_64) and Homebrew tap formula generation.",
+      "acceptanceCriteria": [
+        ".goreleaser.yml configured with builds for darwin/arm64, darwin/amd64, linux/arm64, linux/amd64",
+        "Binary name is `differ`",
+        "Homebrew tap section configured to generate formula in a tap repo",
+        "`goreleaser check` passes on the config",
+        "`goreleaser build --snapshot --clean` produces binaries for all target platforms",
+        "README or docs include install instructions: `brew tap \u003corg\u003e/tap \u0026\u0026 brew install differ`"
+      ],
+      "prompt": "Set up GoReleaser and Homebrew distribution.\n\n1. Create `.goreleaser.yml` with:\n   - Project name: differ\n   - Builds: single build targeting cmd/differ, GOOS: darwin/linux, GOARCH: amd64/arm64\n   - Binary name: differ\n   - Archives with appropriate naming\n   - Brews section for Homebrew tap formula generation (configure tap repo reference)\n   - Changelog generation\n2. Verify with `goreleaser check` if available.\n3. Test with `goreleaser build --snapshot --clean` to verify cross-compilation.\n4. Add brief install instructions to README."
+    },
+    "dependencies": [
+      {
+        "id": "cli-integration",
+        "title": "CLI integration and end-to-end pipeline",
+        "status": "done"
+      }
+    ],
+    "systemPrompt": "You are authorized to run non-destructive commands and edit files needed to complete the task. Do not ask for confirmation. Avoid destructive operations (e.g., deleting unrelated files, wiping directories, resetting git history, or modifying system files)."
+  },
+  "review_summary": {
+    "files": [
+      ".blackbird/",
+      ".goreleaser.yml",
+      "Makefile",
+      "README.md",
+      "blackbird.plan.json",
+      "cmd/",
+      "differ",
+      "dist/",
+      "go.mod",
+      "go.sum",
+      "internal/",
+      "specs/"
+    ]
+  }
+}

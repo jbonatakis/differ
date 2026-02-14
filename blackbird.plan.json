@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "items": {
+    "cli-integration": {
+      "id": "cli-integration",
+      "title": "CLI integration and end-to-end pipeline",
+      "description": "Wire all internal packages together in the CLI entrypoint: config loading → ref resolution → git diff → parsing → classification → filtering → output rendering. Add end-to-end tests.",
+      "acceptanceCriteria": [
+        "CLI entrypoint orchestrates the full pipeline: load config, resolve refs, run diff, parse, classify, filter, render",
+        "All flag values are properly passed through to respective packages",
+        "Config merge with CLI flags works correctly",
+        "Error handling at each stage produces clear messages with correct exit codes",
+        "End-to-end test creates a temp git repo, makes commits, and verifies differ output (text and JSON)",
+        "End-to-end test covers: default ref resolution, explicit refs, list mode, JSON output, category filter, include/exclude",
+        "`go build ./cmd/differ` produces working binary",
+        "`go vet ./...` and `go test ./...` pass"
+      ],
+      "prompt": "Wire all packages together in `cmd/differ/main.go` (or a `run` function called from main).\n\n1. In the Cobra Run function:\n   a. Load config via internal/config.Load() with CLI flag overrides\n   b. Resolve refs via internal/gitdiff.ResolveRefs() using --base, --head, positional arg\n   c. Run diff via internal/gitdiff.RunDiff() with resolved range and pathspecs\n   d. Parse output via internal/parser.Parse() with empty mode from config\n   e. Classify each FileStat via internal/classify.Classifier\n   f. Filter via internal/filter.Filter() with include/exclude/category from config\n   g. Build Summary and render via internal/output (text or JSON based on --format)\n2. Handle errors at each stage with appropriate exit codes.\n3. Write end-to-end integration tests that:\n   - Create a temporary git repo with known file changes\n   - Run the differ binary/function\n   - Assert output matches expected text/JSON\n   - Cover key flag combinations",
+      "parentId": null,
+      "childIds": [],
+      "deps": [
+        "config-loading",
+        "git-diff-exec",
+        "filtering",
+        "output-rendering"
+      ],
+      "status": "done",
+      "createdAt": "2026-02-14T16:30:20.681876Z",
+      "updatedAt": "2026-02-14T16:50:38.41549Z",
+      "depRationale": {
+        "config-loading": "Config must be loadable before pipeline runs",
+        "filtering": "Need filtering logic wired in",
+        "git-diff-exec": "Need ref resolution and diff execution",
+        "output-rendering": "Need output renderers available"
+      }
+    },
+    "config-loading": {
+      "id": "config-loading",
+      "title": "Configuration loading and merge precedence",
+      "description": "Implement the internal/config package to load .differ.yml (repo root) and ~/.config/differ/config.yml (global), merge them with CLI flags using the defined precedence: CLI \u003e repo \u003e global \u003e defaults.",
+      "acceptanceCriteria": [
+        "Config struct defined with fields: Include, Exclude, Categories (map with patterns/extensions), Empty (include|exclude), Sort (churn|path)",
+        "Loads .differ.yml from the Git repo root directory",
+        "Loads ~/.config/differ/config.yml as global config",
+        "Merge precedence: CLI flags \u003e repo config \u003e global config \u003e built-in defaults",
+        "Missing config files are silently skipped (not errors)",
+        "Malformed YAML returns exit code 2 with descriptive error message",
+        "Unit tests cover: no config files, repo only, global only, both with merge, malformed YAML error"
+      ],
+      "prompt": "Implement the `internal/config` package.\n\n1. Define a `Config` struct:\n   - Include []string, Exclude []string\n   - Categories map[string]CategoryConfig (where CategoryConfig has Patterns []string and Extensions []string)\n   - Empty string (\"include\" or \"exclude\"), Sort string (\"churn\" or \"path\")\n2. Write a `Load(repoRoot string, cliOverrides Config)` function that:\n   - Reads `.differ.yml` from repoRoot (if exists)\n   - Reads `~/.config/differ/config.yml` (if exists)\n   - Merges with precedence: cliOverrides \u003e repo \u003e global \u003e defaults\n   - Returns error for malformed YAML\n3. Use `gopkg.in/yaml.v3` for parsing.\n4. Write thorough unit tests covering all merge scenarios and error cases.",
+      "parentId": null,
+      "childIds": [],
+      "deps": [
+        "project-scaffold"
+      ],
+      "status": "done",
+      "createdAt": "2026-02-14T16:30:20.681876Z",
+      "updatedAt": "2026-02-14T16:35:13.566702Z",
+      "depRationale": {
+        "project-scaffold": "Needs Go module and directory structure"
+      }
+    },
+    "diff-parser": {
+      "id": "diff-parser",
+      "title": "Diff output parser with line counting",
+      "description": "Implement internal/parser to parse unified diff output into per-file add/delete counts, handling empty-line filtering, rename detection, and binary file skipping.",
+      "acceptanceCriteria": [
+        "Parses `diff --git a/... b/...` headers to extract file paths",
+        "Handles renamed files from `-M` flag (detects `rename from`/`rename to` or `a/old -\u003e b/new`)",
+        "Counts lines starting with `+` (not `+++`) as added",
+        "Counts lines starting with `-` (not `---`) as deleted",
+        "When empty=exclude (default), lines matching `^[[:space:]]*$` after removing diff prefix are not counted",
+        "When empty=include, all add/delete lines are counted",
+        "Binary patches (`Binary files ... differ`) are skipped entirely",
+        "Returns []FileStat with Path, Added, Deleted, Churn (Added+Deleted) fields",
+        "Unit tests with representative diff fixtures covering: normal changes, renames, binary files, empty lines, multi-file diffs"
+      ],
+      "prompt": "Implement the `internal/parser` package.\n\n1. Define `FileStat` struct: Path string, Added int, Deleted int, Churn int.\n2. Create `Parse(r io.Reader, emptyMode string) ([]FileStat, error)` that:\n   - Reads lines from the diff output\n   - Tracks current file from `diff --git a/... b/...` lines\n   - Detects renames from the diff header\n   - For hunk content lines:\n     - Lines starting with `+` (not `+++`): increment Added\n     - Lines starting with `-` (not `---`): increment Deleted\n     - If emptyMode is \"exclude\", skip lines where the content after the +/- prefix is whitespace-only\n   - Skips binary diffs (lines containing `Binary files`)\n   - Sets Churn = Added + Deleted for each file\n3. Write comprehensive unit tests with embedded diff fixtures covering:\n   - Simple single-file diff\n   - Multi-file diff\n   - Renamed files\n   - Binary files skipped\n   - Empty line inclusion/exclusion\n   - Edge cases (empty diff, only metadata lines)",
+      "parentId": null,
+      "childIds": [],
+      "deps": [
+        "project-scaffold"
+      ],
+      "status": "done",
+      "createdAt": "2026-02-14T16:30:20.681876Z",
+      "updatedAt": "2026-02-14T16:36:35.426477Z",
+      "depRationale": {
+        "project-scaffold": "Needs Go module and directory structure"
+      }
+    },
+    "file-classifier": {
+      "id": "file-classifier",
+      "title": "File categorization and language detection",
+      "description": "Implement internal/classify to assign each file to a category (generated, docs, tests, source, other) using first-match priority, with support for custom category overrides from config.",
+      "acceptanceCriteria": [
+        "Categories assigned in priority order: generated \u003e docs \u003e tests \u003e source \u003e other",
+        "Generated detection: vendor/, node_modules/, dist/, build/ directories; lockfiles (package-lock.json, pnpm-lock.yaml, yarn.lock, go.sum, Cargo.lock, etc.); configurable generated markers",
+        "Docs detection: extensions .md, .markdown, .mdx, .rst, .adoc, .txt; paths containing docs/ or documentation/",
+        "Tests detection: paths test/, tests/, spec/, specs/, __tests__/; filenames *.test.*, *.spec.*; language-specific patterns (*_test.go, test_*.py, *_test.py, *Test.java, *Tests.java, *Test.kt, *.test.js/ts/jsx/tsx, *.spec.js/ts/jsx/tsx, *_spec.rb, test_*.rb)",
+        "Source detection: broad set of recognized source code extensions (Go, Rust, Python, JS, TS, Java, C, C++, C#, PHP, Ruby, Swift, Kotlin, etc.)",
+        "Custom category config from Config.Categories merges with built-in rules",
+        "Optional language field populated via extension mapping or go-enry",
+        "Unit tests cover all categories with representative file paths, including edge cases and custom overrides"
+      ],
+      "prompt": "Implement the `internal/classify` package.\n\n1. Define category constants: Generated, Docs, Tests, Source, Other.\n2. Create a `Classifier` struct that accepts custom category config from the config package.\n3. Implement `Classify(path string) (category string, language string)` using first-match priority:\n   - Generated: check for vendor/, node_modules/, dist/, build/ in path; lockfile names; configurable patterns\n   - Docs: check extensions (.md, .markdown, .mdx, .rst, .adoc, .txt); check for docs/ or documentation/ in path\n   - Tests: check for test/tests/spec/specs/__tests__ in path; filename patterns (*.test.*, *.spec.*, *_test.go, test_*.py, *_test.py, *Test.java, etc.)\n   - Source: check against a broad map of source code extensions\n   - Other: fallback\n4. For language detection, use extension-based mapping. Optionally integrate `go-enry` for richer detection.\n5. Write thorough unit tests for every category and language-specific pattern.",
+      "parentId": null,
+      "childIds": [],
+      "deps": [
+        "project-scaffold",
+        "config-loading"
+      ],
+      "status": "done",
+      "createdAt": "2026-02-14T16:30:20.681876Z",
+      "updatedAt": "2026-02-14T16:39:55.526729Z",
+      "depRationale": {
+        "config-loading": "Needs custom category config from config package",
+        "project-scaffold": "Needs Go module and directory structure"
+      }
+    },
+    "filtering": {
+      "id": "filtering",
+      "title": "Include/exclude and category filtering",
+      "description": "Implement internal/filter to apply include/exclude glob patterns and category restrictions to the list of FileStats.",
+      "acceptanceCriteria": [
+        "Include globs: given input files [\"src/main.go\", \"docs/readme.md\", \"test/foo_test.go\"] and include pattern \"src/**\", only \"src/main.go\" is returned",
+        "Exclude globs: given input files [\"src/main.go\", \"vendor/lib.go\"] and exclude pattern \"vendor/**\", \"vendor/lib.go\" is removed and \"src/main.go\" is returned",
+        "Combined include+exclude: include \"*.go\" and exclude \"vendor/**\" applied to [\"src/main.go\", \"vendor/lib.go\", \"README.md\"] returns only [\"src/main.go\"]",
+        "Category filter: given files classified as [source, docs, tests] and --category=source, only files with category \"source\" are returned",
+        "No filters (empty include, exclude, and categories): all input files are returned unchanged",
+        "Doublestar glob patterns work: pattern \"internal/**/test_*.go\" matches \"internal/pkg/test_util.go\"",
+        "Unit tests assert exact output slices for each scenario: include-only, exclude-only, both, category filter, no filters, and ** glob patterns"
+      ],
+      "prompt": "Implement the `internal/filter` package.\n\n1. Create `Filter(stats []parser.FileStat, cfg FilterConfig) []parser.FileStat` where FilterConfig has:\n   - Include []string (glob patterns)\n   - Exclude []string (glob patterns)\n   - Categories []string (category names to keep)\n2. Logic:\n   - If Include is non-empty, keep only files matching at least one include glob\n   - Remove files matching any exclude glob\n   - If Categories is non-empty, keep only files whose category is in the list\n3. Use `github.com/bmatcuk/doublestar/v4` for ** glob support.\n4. Write unit tests covering all filter combinations.",
+      "parentId": null,
+      "childIds": [],
+      "deps": [
+        "diff-parser",
+        "file-classifier"
+      ],
+      "status": "done",
+      "createdAt": "2026-02-14T16:30:20.681876Z",
+      "updatedAt": "2026-02-14T16:41:55.078357Z",
+      "depRationale": {
+        "diff-parser": "Operates on FileStat types from parser",
+        "file-classifier": "Category filter depends on classification"
+      }
+    },
+    "git-diff-exec": {
+      "id": "git-diff-exec",
+      "title": "Git diff execution and ref resolution",
+      "description": "Implement internal/gitdiff to resolve refs (auto-default logic) and execute `git diff --no-color -U0 -M` streaming the output for downstream parsing.",
+      "acceptanceCriteria": [
+        "Ref resolution follows spec order: --base/--head \u003e positional rev-range \u003e origin/HEAD...HEAD \u003e main...HEAD \u003e master...HEAD",
+        "Each fallback ref is validated via `git rev-parse --verify` before use",
+        "Constructs and executes `git diff --no-color -U0 -M \u003crange\u003e -- \u003cpathspecs\u003e`",
+        "Returns a streaming reader (io.Reader or line channel) for the diff output",
+        "Git errors (bad ref, not a repo) produce clear error messages and exit code 1",
+        "Unit tests cover ref resolution fallback logic with mock git commands",
+        "Integration test verifies diff execution against a real temporary git repo"
+      ],
+      "prompt": "Implement the `internal/gitdiff` package.\n\n1. Create a `ResolveRefs(base, head, positionalRange string)` function that:\n   - If both base and head are set, returns `base...head`\n   - If positionalRange is set, returns it directly\n   - Otherwise tries `git rev-parse --verify origin/HEAD` → `origin/HEAD...HEAD`\n   - Falls back to `main...HEAD`, then `master...HEAD`\n   - Returns error if nothing resolves\n2. Create a `RunDiff(refRange string, pathspecs []string)` function that:\n   - Constructs: `git diff --no-color -U0 -M \u003crefRange\u003e -- \u003cpathspecs...\u003e`\n   - Executes the command and returns an io.Reader for stdout\n   - Captures stderr for error reporting\n3. Write unit tests for ref resolution logic.\n4. Write an integration test that creates a temp git repo with commits and verifies diff output.",
+      "parentId": null,
+      "childIds": [],
+      "deps": [
+        "project-scaffold"
+      ],
+      "status": "done",
+      "createdAt": "2026-02-14T16:30:20.681876Z",
+      "updatedAt": "2026-02-14T16:43:26.137226Z",
+      "depRationale": {
+        "project-scaffold": "Needs Go module and directory structure"
+      }
+    },
+    "release-homebrew": {
+      "id": "release-homebrew",
+      "title": "Release workflow and Homebrew distribution",
+      "description": "Set up GitHub Actions release automation for cross-platform binary builds (macOS arm64/x86_64, Linux arm64/x86_64) and Homebrew tap formula updates.",
+      "acceptanceCriteria": [
+        ".github/workflows/release.yml builds darwin/arm64, darwin/amd64, linux/arm64, linux/amd64 assets on release creation",
+        "Binary name is `differ`",
+        "Workflow updates Homebrew tap formula version and SHA256 values in a tap repo",
+        "Release workflow validates formula update and commits to tap repository using a PAT",
+        "Release assets include checksums for all target platforms",
+        "README or docs include install instructions: `brew tap \u003corg\u003e/tap \u0026\u0026 brew install differ`"
+      ],
+      "prompt": "Set up release automation and Homebrew distribution.\n\n1. Create `.github/workflows/release.yml` that:\n   - Triggers on `release.created`\n   - Builds and uploads assets for darwin/linux amd64/arm64 from `cmd/differ`\n   - Publishes sha256 checksum files for each asset\n2. Add a job that checks out the Homebrew tap repo with `HOMEBREW_TAP_TOKEN` and updates the `differ` formula version and per-platform SHA256 values.\n3. Commit and push the tap update from the workflow.\n4. Add brief install and release secret instructions to README.",
+      "parentId": null,
+      "childIds": [],
+      "deps": [
+        "cli-integration"
+      ],
+      "status": "done",
+      "createdAt": "2026-02-14T16:30:20.681876Z",
+      "updatedAt": "2026-02-14T16:52:57.340032Z",
+      "depRationale": {
+        "cli-integration": "Need working CLI binary before configuring release automation"
+      }
+    },
+    "output-rendering": {
+      "id": "output-rendering",
+      "title": "Text and JSON output rendering",
+      "description": "Implement internal/output to render summary, list, and JSON output formats according to the spec.",
+      "acceptanceCriteria": [
+        "Text summary format matches spec: `Category: +N -M (churn) [F files]` for each category with data, plus Total line",
+        "Categories displayed in order: Documentation, Tests, Source, Generated, Uncategorized (for other)",
+        "Categories with zero churn are omitted from text output",
+        "List mode (-l): summary followed by grouped file lines `[Category]\\n+N -M path`",
+        "List-only mode (-L): only grouped file lines, no summary",
+        "File list sorted by --sort flag: churn (descending, default) or path (ascending)",
+        "Colorized output by default (category names colored); --no-color disables it",
+        "JSON output matches spec schema: meta, total, by_category, by_file",
+        "JSON meta includes refs, flags, timestamp, pathspecs",
+        "Unit tests verify text output strings and JSON schema compliance"
+      ],
+      "prompt": "Implement the `internal/output` package.\n\n1. Define `Summary` struct with Totals, CategoryTotals map, FileStats slice, Meta (refs, flags, timestamp, pathspecs).\n2. Implement `RenderText(w io.Writer, summary Summary, opts OutputOpts)` where OutputOpts has List, ListOnly, Sort, NoColor:\n   - Print category lines in order: Documentation, Tests, Source, Generated, Uncategorized\n   - Format: `Category: +N -M (churn) [F files]`\n   - Skip categories with zero churn\n   - Print Total line\n   - If List: print grouped file lines after summary\n   - If ListOnly: print only grouped file lines\n   - Sort files by churn (desc) or path (asc) based on Sort option\n   - Use ANSI color codes for category names unless NoColor\n3. Implement `RenderJSON(w io.Writer, summary Summary)` producing JSON with:\n   - meta: {base, head, empty, pathspecs, timestamp}\n   - total: {added, deleted, churn, files}\n   - by_category: {[name]: {added, deleted, churn, files, file_count}}\n   - by_file: [{path, added, deleted, churn, category, language}]\n4. Write unit tests for both renderers.",
+      "parentId": null,
+      "childIds": [],
+      "deps": [
+        "diff-parser",
+        "file-classifier"
+      ],
+      "status": "done",
+      "createdAt": "2026-02-14T16:30:20.681876Z",
+      "updatedAt": "2026-02-14T16:46:36.823254Z",
+      "depRationale": {
+        "diff-parser": "Needs FileStat data model",
+        "file-classifier": "Needs category names and classification"
+      }
+    },
+    "project-scaffold": {
+      "id": "project-scaffold",
+      "title": "Project scaffolding and Go module setup",
+      "description": "Initialize the Go module, set up the directory structure per the suggested architecture, wire up Cobra for the CLI entrypoint, and add a basic Makefile/build config.",
+      "acceptanceCriteria": [
+        "Go module initialized with `go mod init`",
+        "Directory structure created: cmd/differ/, internal/gitdiff/, internal/parser/, internal/classify/, internal/filter/, internal/output/, internal/config/",
+        "Cobra root command wired in cmd/differ/main.go with all v1 flags defined (--base, --head, --empty, -l, -L, --format, --include, --exclude, --category, --sort, --no-color)",
+        "Positional rev-range argument accepted",
+        "`--` pathspec passthrough supported",
+        "`differ --help` prints usage matching the CLI contract in the spec",
+        "Exit codes 0/1/2 handled correctly",
+        "Project builds with `go build ./cmd/differ`"
+      ],
+      "prompt": "Initialize a Go project for the `differ` CLI tool.\n\n1. Run `go mod init github.com/jackbonatakis/differ` (or appropriate module path).\n2. Create the directory structure:\n   - cmd/differ/main.go\n   - internal/gitdiff/\n   - internal/parser/\n   - internal/classify/\n   - internal/filter/\n   - internal/output/\n   - internal/config/\n3. Use `cobra` for CLI wiring. Define the root command with:\n   - Positional arg: optional rev-range\n   - `--` separator for pathspecs\n   - Flags: --base, --head, --empty (include|exclude, default exclude), -l/--list, -L/--list-only, --format (text|json, default text), --include (StringArrayVar, repeatable), --exclude (repeatable), --category (repeatable), --sort (churn|path, default churn), --no-color\n4. Implement exit code handling: 0 success, 1 runtime/usage error, 2 invalid config.\n5. Verify `go build ./cmd/differ` succeeds and `differ --help` shows correct usage.",
+      "parentId": null,
+      "childIds": [],
+      "deps": [],
+      "status": "done",
+      "createdAt": "2026-02-14T16:30:20.681876Z",
+      "updatedAt": "2026-02-14T16:33:25.881609Z"
+    }
+  }
+}

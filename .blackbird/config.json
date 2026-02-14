@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "planning": {
+    "maxPlanAutoRefinePasses": 3
+  }
+}

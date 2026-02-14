@@ -1,0 +1,53 @@
+{
+  "id": "450c2b2ebadc0484",
+  "taskId": "diff-parser",
+  "run_type": "execute",
+  "provider": "claude",
+  "provider_session_ref": "e545b1ba-e782-4ce9-8322-3026a73a04c2",
+  "startedAt": "2026-02-14T16:35:13.582247Z",
+  "completedAt": "2026-02-14T16:36:35.150596Z",
+  "status": "success",
+  "exitCode": 0,
+  "stdout": "The `internal/parser` package is implemented. Here's a summary:\n\n**`parser.go`** — Core implementation:\n- `FileStat` struct with `Path`, `Added`, `Deleted`, `Churn` fields\n- `Parse(r io.Reader, emptyMode string) ([]FileStat, error)` that:\n  - Extracts file paths from `diff --git a/... b/...` headers\n  - Detects renames via `rename to` lines\n  - Counts `+` lines (not `+++`) as added, `-` lines (not `---`) as deleted\n  - Skips whitespace-only changed lines when `emptyMode=\"exclude\"` (default)\n  - Skips binary files (`Binary files ... differ`)\n  - Computes `Churn = Added + Deleted`\n\n**`parser_test.go`** — 10 tests covering:\n- Simple single-file diff\n- Empty line exclusion/inclusion modes\n- Multi-file diffs\n- Renamed files\n- Binary files skipped (zero counts)\n- Empty diff input\n- Metadata-only diff (no hunks)\n- Churn calculation correctness\n",
+  "context": {
+    "schemaVersion": 1,
+    "task": {
+      "id": "diff-parser",
+      "title": "Diff output parser with line counting",
+      "description": "Implement internal/parser to parse unified diff output into per-file add/delete counts, handling empty-line filtering, rename detection, and binary file skipping.",
+      "acceptanceCriteria": [
+        "Parses `diff --git a/... b/...` headers to extract file paths",
+        "Handles renamed files from `-M` flag (detects `rename from`/`rename to` or `a/old -\u003e b/new`)",
+        "Counts lines starting with `+` (not `+++`) as added",
+        "Counts lines starting with `-` (not `---`) as deleted",
+        "When empty=exclude (default), lines matching `^[[:space:]]*$` after removing diff prefix are not counted",
+        "When empty=include, all add/delete lines are counted",
+        "Binary patches (`Binary files ... differ`) are skipped entirely",
+        "Returns []FileStat with Path, Added, Deleted, Churn (Added+Deleted) fields",
+        "Unit tests with representative diff fixtures covering: normal changes, renames, binary files, empty lines, multi-file diffs"
+      ],
+      "prompt": "Implement the `internal/parser` package.\n\n1. Define `FileStat` struct: Path string, Added int, Deleted int, Churn int.\n2. Create `Parse(r io.Reader, emptyMode string) ([]FileStat, error)` that:\n   - Reads lines from the diff output\n   - Tracks current file from `diff --git a/... b/...` lines\n   - Detects renames from the diff header\n   - For hunk content lines:\n     - Lines starting with `+` (not `+++`): increment Added\n     - Lines starting with `-` (not `---`): increment Deleted\n     - If emptyMode is \"exclude\", skip lines where the content after the +/- prefix is whitespace-only\n   - Skips binary diffs (lines containing `Binary files`)\n   - Sets Churn = Added + Deleted for each file\n3. Write comprehensive unit tests with embedded diff fixtures covering:\n   - Simple single-file diff\n   - Multi-file diff\n   - Renamed files\n   - Binary files skipped\n   - Empty line inclusion/exclusion\n   - Edge cases (empty diff, only metadata lines)"
+    },
+    "dependencies": [
+      {
+        "id": "project-scaffold",
+        "title": "Project scaffolding and Go module setup",
+        "status": "done"
+      }
+    ],
+    "systemPrompt": "You are authorized to run non-destructive commands and edit files needed to complete the task. Do not ask for confirmation. Avoid destructive operations (e.g., deleting unrelated files, wiping directories, resetting git history, or modifying system files)."
+  },
+  "review_summary": {
+    "files": [
+      ".blackbird/",
+      "Makefile",
+      "blackbird.plan.json",
+      "cmd/",
+      "differ",
+      "go.mod",
+      "go.sum",
+      "internal/",
+      "specs/"
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "id": "d4a9aa26bd23314b",
+  "taskId": "git-diff-exec",
+  "run_type": "execute",
+  "provider": "claude",
+  "provider_session_ref": "555a208e-07dc-45c2-82be-09f755fdffb6",
+  "startedAt": "2026-02-14T16:41:55.099719Z",
+  "completedAt": "2026-02-14T16:43:25.872326Z",
+  "status": "success",
+  "exitCode": 0,
+  "stdout": "All done. Here's a summary of what was implemented:\n\n**`internal/gitdiff/gitdiff.go`** — Two main functions plus supporting types:\n\n- **`CommandRunner` interface** — Abstracts command execution (`Run` for synchronous, `Start` for streaming) to enable mock-based testing\n- **`ResolveRefs(runner, base, head, positionalRange)`** — Resolves the ref range with the spec priority order:\n  1. `--base`/`--head` flags → `base...head`\n  2. Positional rev-range → returned directly\n  3. Auto-detect fallback: `origin/HEAD...HEAD` → `main...HEAD` → `master...HEAD`\n  4. Each fallback validated via `git rev-parse --verify`\n- **`RunDiff(runner, refRange, pathspecs)`** — Constructs and executes `git diff --no-color -U0 -M \u003crange\u003e -- \u003cpathspecs\u003e`, returning a `DiffResult` with streaming `io.ReadCloser` for stdout\n- **`DiffResult.Wait()`** — Waits for the command to finish, includes stderr in error messages\n\n**`internal/gitdiff/gitdiff_test.go`** — 8 unit tests covering:\n- Base+head explicit refs\n- Positional range passthrough\n- Base+head priority over positional\n- All three fallback refs (origin/HEAD, main, master)\n- Fallback ordering (main before master)\n- Error when nothing resolves\n\n**`internal/gitdiff/integration_test.go`** — Creates a real temp git repo with two branches, verifies:\n- `ResolveRefs` auto-detects `main...HEAD`\n- `RunDiff` produces correct streaming diff output\n- Pathspec filtering works (only matched files appear)\n",
+  "context": {
+    "schemaVersion": 1,
+    "task": {
+      "id": "git-diff-exec",
+      "title": "Git diff execution and ref resolution",
+      "description": "Implement internal/gitdiff to resolve refs (auto-default logic) and execute `git diff --no-color -U0 -M` streaming the output for downstream parsing.",
+      "acceptanceCriteria": [
+        "Ref resolution follows spec order: --base/--head \u003e positional rev-range \u003e origin/HEAD...HEAD \u003e main...HEAD \u003e master...HEAD",
+        "Each fallback ref is validated via `git rev-parse --verify` before use",
+        "Constructs and executes `git diff --no-color -U0 -M \u003crange\u003e -- \u003cpathspecs\u003e`",
+        "Returns a streaming reader (io.Reader or line channel) for the diff output",
+        "Git errors (bad ref, not a repo) produce clear error messages and exit code 1",
+        "Unit tests cover ref resolution fallback logic with mock git commands",
+        "Integration test verifies diff execution against a real temporary git repo"
+      ],
+      "prompt": "Implement the `internal/gitdiff` package.\n\n1. Create a `ResolveRefs(base, head, positionalRange string)` function that:\n   - If both base and head are set, returns `base...head`\n   - If positionalRange is set, returns it directly\n   - Otherwise tries `git rev-parse --verify origin/HEAD` → `origin/HEAD...HEAD`\n   - Falls back to `main...HEAD`, then `master...HEAD`\n   - Returns error if nothing resolves\n2. Create a `RunDiff(refRange string, pathspecs []string)` function that:\n   - Constructs: `git diff --no-color -U0 -M \u003crefRange\u003e -- \u003cpathspecs...\u003e`\n   - Executes the command and returns an io.Reader for stdout\n   - Captures stderr for error reporting\n3. Write unit tests for ref resolution logic.\n4. Write an integration test that creates a temp git repo with commits and verifies diff output."
+    },
+    "dependencies": [
+      {
+        "id": "project-scaffold",
+        "title": "Project scaffolding and Go module setup",
+        "status": "done"
+      }
+    ],
+    "systemPrompt": "You are authorized to run non-destructive commands and edit files needed to complete the task. Do not ask for confirmation. Avoid destructive operations (e.g., deleting unrelated files, wiping directories, resetting git history, or modifying system files)."
+  },
+  "review_summary": {
+    "files": [
+      ".blackbird/",
+      "Makefile",
+      "blackbird.plan.json",
+      "cmd/",
+      "differ",
+      "go.mod",
+      "go.sum",
+      "internal/",
+      "specs/"
+    ]
+  }
+}
