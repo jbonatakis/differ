@@ -15,6 +15,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version is set at build time via -ldflags "-X main.Version=..."
+var Version string
+
 // Exit codes per spec.
 const (
 	exitSuccess       = 0

@@ -39,7 +39,7 @@ jobs:
           GOOS="${{ matrix.goos }}" \
           GOARCH="${{ matrix.goarch }}" \
           CGO_ENABLED=0 \
-          go build -trimpath -ldflags "-s -w" -o "${out_dir}/differ" ./cmd/differ
+          go build -trimpath -ldflags "-s -w -X main.Version=${{ github.event.release.tag_name }}" -o "${out_dir}/differ" ./cmd/differ
 
           tar -C "$out_dir" -czf "dist/${artifact}.tar.gz" differ
           sha256sum "dist/${artifact}.tar.gz" > "dist/${artifact}.tar.gz.sha256"
